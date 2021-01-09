@@ -1,0 +1,29 @@
+{
+  "name": "electron-with-parcel-react",
+  "version": "1.0.0",
+  "description": "",
+  "main": "src/electron-starter.js",
+  "scripts": {
+    "start": "parcel src/index.html",
+    "electron": "electron .",
+    "build": "parcel build src/index.html --public-url $(pwd)/dist",
+    "build2": "pwd"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "core-js": "^3.8.2",
+    "electron": "^1.7.9",
+    "foreman": "^2.0.0",
+    "parcel-bundler": "1.12.4",
+    "react": "16.14.0",
+    "react-dom": "^17.0.1",
+    "styled-components": "^5.2.1",
+    "@date-io/date-fns": "v1",
+    "@material-ui/core": "^4.11.2",
+    "@material-ui/pickers": "^3.2.10",
+    "axios": "^0.21.0",
+    "date-fns": "^2.16.1",
+    "react-text-mask": "^5.4.3"
+  }
+}
