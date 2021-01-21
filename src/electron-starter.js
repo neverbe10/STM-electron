@@ -2,7 +2,6 @@ const { app, BrowserWindow, webContents, ipcMain } = require("electron");
 const path = require("path");
 const url = require("url");
 
-
 function sleep(ms) {
   return new Promise(ok => setTimeout(ok, ms));
 }
@@ -31,17 +30,19 @@ function createWindow() {
   mainWin.webContents.openDevTools();
 
   // When main UI window sends a message to initiate a scrape
-  ipcMain.on("scrape", scrape);
+  ipcMain.on("scrape", (event, arg) => {
+    scrape(arg);
+  });
 
-  async function loop() {
-    await scrape()
-    await sleep(10000);
-    loop();
-  }
+  // async function loop() {
+  //   await scrape("https://www.stevenspass.com/plan-your-trip/lift-access/tickets.aspx?startDate=01%2F09%2F2021&numberOfDays=1&ageGroup=Adult");
+  //   await sleep(10000);
+  //   loop();
+  // }
 
-  loop();
+  // loop();
 
-  async function scrape() {
+  async function scrape(url) {
 
     console.log('Scraping,.......');
 
@@ -55,14 +56,11 @@ function createWindow() {
     });
 
     // Scrape one site, but could schedule multiple in succession
-    await win.loadURL(
-      "https://www.stevenspass.com/plan-your-trip/lift-access/tickets.aspx?startDate=01%2F09%2F2021&numberOfDays=1&ageGroup=Adult"
-    );
+    await win.loadURL(url);
     await sleep(5000);
-    console.log("Window loaded");
-    await win.close();
+    win.close();
 
-    await mainWin.webContents.send("scrape-complete");
+    mainWin.webContents.send("scrape-complete");
   }
 
   mainWin.on("closed", function () {
