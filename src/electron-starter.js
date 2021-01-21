@@ -1,60 +1,89 @@
-const electron = require('electron');
-// Module to control application life.
-const app = electron.app;
-// Module to create native browser window.
-const BrowserWindow = electron.BrowserWindow;
+const { app, BrowserWindow, webContents, ipcMain } = require("electron");
+const path = require("path");
+const url = require("url");
 
-const path = require('path');
-const url = require('url');
 
-// Keep a global reference of the window object, if you don't, the window will
-// be closed automatically when the JavaScript object is garbage collected.
-let mainWindow;
-
-function createWindow() {
-    // Create the browser window.
-    mainWindow = new BrowserWindow({width: 800, height: 600, webPreferences: { nodeIntegration: true }});
-
-    // and load the index.html of the app.
-    const startUrl = process.env.ELECTRON_START_URL || url.format({
-            pathname: path.join(__dirname, '/../dist/index.html'),
-            protocol: 'file:',
-            slashes: true
-        });
-    mainWindow.loadURL(startUrl);
-    // Open the DevTools.
-    mainWindow.webContents.openDevTools();
-
-    // Emitted when the window is closed.
-    mainWindow.on('closed', function () {
-        // Dereference the window object, usually you would store windows
-        // in an array if your app supports multi windows, this is the time
-        // when you should delete the corresponding element.
-        mainWindow = null
-    })
+function sleep(ms) {
+  return new Promise(ok => setTimeout(ok, ms));
 }
 
-// This method will be called when Electron has finished
-// initialization and is ready to create browser windows.
-// Some APIs can only be used after this event occurs.
-app.on('ready', createWindow);
+function createWindow() {
+  // Main UI window
+  const mainWin = new BrowserWindow({
+    width: 800,
+    height: 600,
+    webPreferences: {
+      // UI window accesses `fs` directly.
+      nodeIntegration: true,
+    },
+  });
 
-// Quit when all windows are closed.
-app.on('window-all-closed', function () {
-    // On OS X it is common for applications and their menu bar
-    // to stay active until the user quits explicitly with Cmd + Q
-    if (process.platform !== 'darwin') {
-        app.quit()
-    }
+  // mainWin.loadFile(`index.html`);
+  // and load the index.html of the app.
+  const startUrl =
+    process.env.ELECTRON_START_URL ||
+    url.format({
+      pathname: path.join(__dirname, "/../dist/index.html"),
+      protocol: "file:",
+      slashes: true,
+    });
+  mainWin.loadURL(startUrl);
+  mainWin.webContents.openDevTools();
+
+  // When main UI window sends a message to initiate a scrape
+  ipcMain.on("scrape", scrape);
+
+  async function loop() {
+    await scrape()
+    await sleep(10000);
+    loop();
+  }
+
+  loop();
+
+  async function scrape() {
+
+    console.log('Scraping,.......');
+
+    const win = new BrowserWindow({
+      width: 800,
+      height: 600,
+      show: false, // Don't show to the user
+      webPreferences: {
+        preload: `${__dirname}/preload.js`, // Load the preload script, which intercepts all AJAX requests
+      },
+    });
+
+    // Scrape one site, but could schedule multiple in succession
+    await win.loadURL(
+      "https://www.stevenspass.com/plan-your-trip/lift-access/tickets.aspx?startDate=01%2F09%2F2021&numberOfDays=1&ageGroup=Adult"
+    );
+    await sleep(5000);
+    console.log("Window loaded");
+    await win.close();
+
+    await mainWin.webContents.send("scrape-complete");
+  }
+
+  mainWin.on("closed", function () {
+    // Dereference the window object, usually you would store windows
+    // in an array if your app supports multi windows, this is the time
+    // when you should delete the corresponding element.
+    mainWin = null;
+  });
+}
+
+// Standard start up and shutdown code
+app.whenReady().then(createWindow);
+
+app.on("window-all-closed", () => {
+  if (process.platform !== "darwin") {
+    app.quit();
+  }
 });
 
-app.on('activate', function () {
-    // On OS X it's common to re-create a window in the app when the
-    // dock icon is clicked and there are no other windows open.
-    if (mainWindow === null) {
-        createWindow()
-    }
+app.on("activate", () => {
+  if (BrowserWindow.getAllWindows().length === 0) {
+    createWindow();
+  }
 });
-
-// In this file you can include the rest of your app's specific main process
-// code. You can also put them in separate files and require them here.

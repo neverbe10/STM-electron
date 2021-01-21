@@ -106,15 +106,15 @@ export default function App() {
     }
   }, []);
 
-  useEffect(() => {
-    try {
-      axios("/resort-list").then((res) => {
-        setResortList(res.data);
-      });
-    } catch (e) {
-      console.log(e);
-    }
-  }, [setResortList]);
+  // useEffect(() => {
+  //   try {
+  //     axios("/resort-list").then((res) => {
+  //       setResortList(res.data);
+  //     });
+  //   } catch (e) {
+  //     console.log(e);
+  //   }
+  // }, [setResortList]);
 
   useEffect(() => {
     if (choosenDate && resort) {

@@ -10,8 +10,6 @@ function render() {
     ReactDOM.render(<App/>, document.getElementById("root"))
 }
 
-console.log("hi there");
-
 render();
 
 if (module.hot) {
