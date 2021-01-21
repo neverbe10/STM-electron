@@ -1,26 +1,3 @@
-// import React, { Component } from 'react';
-// import logo from './logo.svg';
-// import './App.css';
-
-// class App extends Component {
-//   render() {
-//     return (
-//       <div className="App">
-//         <div className="App-header">
-//           <img src={logo} className="App-logo" alt="logo" />
-//           <h2>Welcome to React/Electron</h2>
-//         </div>
-//         <p className="App-intro">
-//           Hello Electron!
-//         </p>
-//       </div>
-//     );
-//   }
-// }
-
-// export default App;
-
-
 import React, { useState, useEffect, useRef } from "react";
 import styled from "styled-components";
 import "date-fns";
@@ -38,6 +15,7 @@ import {
   MuiPickersUtilsProvider,
 } from "@material-ui/pickers";
 import axios from "axios";
+import {ipcRenderer} from "electron";
 
 import PhoneNumberMask from "./PhoneNumberMask";
 import SnowContainer from "./SnowContainer";
@@ -153,6 +131,10 @@ export default function App() {
     }
   };
 
+  const handleClick = () => {
+    window.ipcRenderer.send('scrape', 'https://www.stevenspass.com/plan-your-trip/lift-access/tickets.aspx?startDate=01%2F09%2F2021&numberOfDays=1&ageGroup=Adult');
+  }
+
   let availability;
 
   console.log({
@@ -200,6 +182,7 @@ export default function App() {
   return (
     <div>
       <PageWrapper>
+      <button onClick={handleClick}>button</button>
         <Donate />
         <h1>Ski Ticket Monitor</h1>
         <p>
