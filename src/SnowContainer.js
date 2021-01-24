@@ -186,7 +186,6 @@ export default function SnowContainer() {
 
   useEffect(() => {
     if (ref.current) {  
-      console.log('Loading snows');
       const snows = new Snows({
         num: 300,
         maxSpeed: 4,

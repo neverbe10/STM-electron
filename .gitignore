@@ -2,4 +2,4 @@ node_modules/
 .cache/
 ski-darwin-x64/
 dist/
-src/scraped/
+src/data/

@@ -6,8 +6,9 @@
 // https://stackoverflow.com/a/57656281/1623877
 
 const fs = require('fs');
+const { format } = require("date-fns");
 
-const scrapedir = `${__dirname}/scraped`;
+const scrapedir = `${__dirname}/data`;
 
 // Make sure the scrape dir exists
 try {
@@ -29,11 +30,31 @@ window.XMLHttpRequest.prototype.open = function (method, url, async, user, passw
 
 function writeResponse(url, response) {
   try {
-    const filename = url.split('/').pop();
+    let existingData;
+    try {
+      existingData = JSON.parse(fs.readFileSync(`${scrapedir}/data.json`));
+    } catch(e) {
+      existingData = [];
+    }
     if (typeof response === 'string') {
       response = JSON.parse(response);
-    }
-    fs.writeFileSync(`${scrapedir}/${filename}`, JSON.stringify(response, null, 2));
+      response.forEach(({ InventoryDateTime, Remaining }) => {
+        const inventoryDateTime = format(
+          new Date(InventoryDateTime),
+          "MM/dd/yyyy"
+        );
+        const currentIndex = existingData.findIndex(e => e.inventoryDateTime === inventoryDateTime);
+        if(currentIndex === -1) {
+          existingData.push({inventoryDateTime, remaining: Remaining});
+        } else if(existingData[currentIndex].remaining !== Remaining) {
+          existingData[currentIndex] = {inventoryDateTime, remaining: Remaining};
+        }
+      })
+      fs.writeFileSync(`${scrapedir}/data.json`, JSON.stringify(existingData, null, 2));
+    } else {
+      console.warn('wrong format');
+      return;
+    }    
   } catch (e) {
     console.log('Parse failed', { url, response });
   }

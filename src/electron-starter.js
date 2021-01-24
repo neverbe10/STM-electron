@@ -1,6 +1,50 @@
-const { app, BrowserWindow, webContents, ipcMain } = require("electron");
+const { app, BrowserWindow, webContents, ipcMain, Notification } = require("electron");
 const path = require("path");
 const url = require("url");
+const fs = require('fs');
+const { format } = require("date-fns");
+
+const scrapedir = `${__dirname}/data`;
+const resortArray = ["keystone", "stevens", "breckenridge"];
+const resortMap = {
+  keystone:
+    "https://www.keystoneresort.com/plan-your-trip/lift-access/tickets.aspx",
+  stevens:
+    "https://www.stevenspass.com/plan-your-trip/lift-access/tickets.aspx",
+  breckenridge: 'https://www.breckenridge.com/plan-your-trip/lift-access/tickets.aspx',
+};
+
+ipcMain.on('resort-list', (event) => {
+  event.returnValue = resortArray;
+});
+
+let ChoosenDate;
+
+ipcMain.on('availability', (event, resort, choosenDate) => {
+  const res = getAvailability(resort, choosenDate);
+  event.returnValue = {
+      remaining: res,
+      resort,
+      resortUrl: resortMap[resort]
+  };
+  ChoosenDate = choosenDate;
+  console.log({ChoosenDate});
+});
+
+function getAvailability(resort, choosenDate) {
+  try {
+    const availability = JSON.parse(fs.readFileSync(`${scrapedir}/data.json`));
+    choosenDate = format(
+      new Date(choosenDate),
+      "MM/dd/yyyy"
+    );
+    return availability.find(e => e.inventoryDateTime === choosenDate).remaining;
+  } catch(e) {
+    console.error(e);
+    return null;
+  }
+}
+
 
 function sleep(ms) {
   return new Promise(ok => setTimeout(ok, ms));
@@ -30,17 +74,40 @@ function createWindow() {
   mainWin.webContents.openDevTools();
 
   // When main UI window sends a message to initiate a scrape
-  ipcMain.on("scrape", (event, arg) => {
-    scrape(arg);
-  });
+  // ipcMain.on("scrape", (event, arg) => {
+  //   startScraping(arg);
+  // });
 
-  // async function loop() {
-  //   await scrape("https://www.stevenspass.com/plan-your-trip/lift-access/tickets.aspx?startDate=01%2F09%2F2021&numberOfDays=1&ageGroup=Adult");
-  //   await sleep(10000);
-  //   loop();
+  // if(ChoosenDate) {
+  //   const notification = {
+  //     title: 'Basic Notification',
+  //     body: 'Notification from the Main process'
+  //   }
+  //   new Notification(notification).show()
   // }
+  
 
-  // loop();
+  async function loop() {
+    await scrape("https://www.stevenspass.com/plan-your-trip/lift-access/tickets.aspx?startDate=01%2F09%2F2021&numberOfDays=1&ageGroup=Adult");
+    await sleep(60000);
+    // const remaining = getAvailability('stevens', ChoosenDate);
+    // console.log("sending notification");
+    // if(remaining > 0) {
+    //   new Notification({
+    //     title: 'Basic Notification',
+    //     body: 'AVAILABLE'
+    //   }).show();
+    // } else {
+    //   new Notification({
+    //     title: 'Basic Notification',
+    //     body: 'NOT AVAILABLE'
+    //   }).show();
+    // }
+
+    loop();
+  }
+
+  loop();
 
   async function scrape(url) {
 
@@ -60,15 +127,17 @@ function createWindow() {
     await sleep(5000);
     win.close();
 
-    mainWin.webContents.send("scrape-complete");
+    if(mainWin) {
+      mainWin.webContents.send("scrape-complete");
+    }
   }
 
-  mainWin.on("closed", function () {
-    // Dereference the window object, usually you would store windows
-    // in an array if your app supports multi windows, this is the time
-    // when you should delete the corresponding element.
-    mainWin = null;
-  });
+  // mainWin.on("closed", function () {
+  //   // Dereference the window object, usually you would store windows
+  //   // in an array if your app supports multi windows, this is the time
+  //   // when you should delete the corresponding element.
+  //   mainWin.close();
+  // });
 }
 
 // Standard start up and shutdown code

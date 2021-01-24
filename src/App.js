@@ -14,8 +14,9 @@ import {
   KeyboardDatePicker,
   MuiPickersUtilsProvider,
 } from "@material-ui/pickers";
-import axios from "axios";
-import {ipcRenderer} from "electron";
+const electron = window.require('electron');
+// const fs = electron.remote.require('fs');
+const ipcRenderer  = electron.ipcRenderer;
 
 import PhoneNumberMask from "./PhoneNumberMask";
 import SnowContainer from "./SnowContainer";
@@ -84,26 +85,18 @@ export default function App() {
     }
   }, []);
 
-  // useEffect(() => {
-  //   try {
-  //     axios("/resort-list").then((res) => {
-  //       setResortList(res.data);
-  //     });
-  //   } catch (e) {
-  //     console.log(e);
-  //   }
-  // }, [setResortList]);
+  useEffect(() => {
+    
+    setResortList(ipcRenderer.sendSync('resort-list'));
+
+  }, [setResortList]);
 
   useEffect(() => {
     if (choosenDate && resort) {
-      try {
-        axios(`/availability/${resort}?date=${choosenDate}`).then((res) => {
-          setIsAvailable(res.data.remaining > 0);
-          setResortUrl(res.data.resortUrl);
-        });
-      } catch (e) {
-        console.log(e);
-      }
+      const res = ipcRenderer.sendSync('availability', resort, choosenDate);
+      // TODO: if null!!!
+      setIsAvailable(res.remaining > 0 || false);
+      setResortUrl(res.resortUrl || "");
     }
   }, [resort, choosenDate, setIsAvailable]);
 
@@ -117,23 +110,23 @@ export default function App() {
     setPhoneNumberErrorText(undefined);
   };
 
+  // const handleButtonClick = () => {
+  //   ipcRenderer.sendSync('scrape', 'stevens');
+  // }
+
   const handleSubscribe = async () => {
     if (phoneNumber && choosenDate && resort) {
       if (!isLoading) {
         setIsLoading(true);
-        await axios.post(`/subscribe`, {
-          phoneNumber,
-          choosenDate,
-          resort,
-        });
+        // await axios.post(`/subscribe`, {
+        //   phoneNumber,
+        //   choosenDate,
+        //   resort,
+        // });
         setIsLoading(false);
       }
     }
   };
-
-  const handleClick = () => {
-    window.ipcRenderer.send('scrape', 'https://www.stevenspass.com/plan-your-trip/lift-access/tickets.aspx?startDate=01%2F09%2F2021&numberOfDays=1&ageGroup=Adult');
-  }
 
   let availability;
 
@@ -182,7 +175,6 @@ export default function App() {
   return (
     <div>
       <PageWrapper>
-      <button onClick={handleClick}>button</button>
         <Donate />
         <h1>Ski Ticket Monitor</h1>
         <p>
