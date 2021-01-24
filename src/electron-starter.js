@@ -1,53 +1,63 @@
-const { app, BrowserWindow, webContents, ipcMain, Notification } = require("electron");
+const {
+  app,
+  BrowserWindow,
+  webContents,
+  ipcMain,
+  Notification,
+} = require("electron");
 const path = require("path");
 const url = require("url");
-const fs = require('fs');
+const fs = require("fs");
 const { format } = require("date-fns");
 
 const scrapedir = `${__dirname}/data`;
-const resortArray = ["keystone", "stevens", "breckenridge"];
+// const resortArray = ["keystone", "stevens", "breckenridge"];
+// const resortMap = {
+//   keystone:
+//     "https://www.keystoneresort.com/plan-your-trip/lift-access/tickets.aspx",
+//   stevens:
+//     "https://www.stevenspass.com/plan-your-trip/lift-access/tickets.aspx",
+//   breckenridge: 'https://www.breckenridge.com/plan-your-trip/lift-access/tickets.aspx',
+// };
+
+const resortArray = ["stevens"];
 const resortMap = {
-  keystone:
-    "https://www.keystoneresort.com/plan-your-trip/lift-access/tickets.aspx",
   stevens:
     "https://www.stevenspass.com/plan-your-trip/lift-access/tickets.aspx",
-  breckenridge: 'https://www.breckenridge.com/plan-your-trip/lift-access/tickets.aspx',
 };
 
-ipcMain.on('resort-list', (event) => {
+ipcMain.on("resort-list", (event) => {
   event.returnValue = resortArray;
 });
 
 let ChoosenDate;
 
-ipcMain.on('availability', (event, resort, choosenDate) => {
+ipcMain.on("availability", (event, resort, choosenDate) => {
   const res = getAvailability(resort, choosenDate);
   event.returnValue = {
-      remaining: res,
-      resort,
-      resortUrl: resortMap[resort]
+    remaining: res,
+    resort,
+    resortUrl: resortMap[resort],
   };
   ChoosenDate = choosenDate;
-  console.log({ChoosenDate});
 });
 
 function getAvailability(resort, choosenDate) {
   try {
     const availability = JSON.parse(fs.readFileSync(`${scrapedir}/data.json`));
-    choosenDate = format(
-      new Date(choosenDate),
-      "MM/dd/yyyy"
+    choosenDate = format(new Date(choosenDate), "MM/dd/yyyy");
+    return (
+      availability.find((e) => e.inventoryDateTime === choosenDate).remaining ||
+      null
     );
-    return availability.find(e => e.inventoryDateTime === choosenDate).remaining;
-  } catch(e) {
+  } catch (e) {
     console.error(e);
     return null;
   }
 }
 
-
 function sleep(ms) {
-  return new Promise(ok => setTimeout(ok, ms));
+  return new Promise((ok) => setTimeout(ok, ms));
 }
 
 function createWindow() {
@@ -85,24 +95,23 @@ function createWindow() {
   //   }
   //   new Notification(notification).show()
   // }
-  
 
   async function loop() {
-    await scrape("https://www.stevenspass.com/plan-your-trip/lift-access/tickets.aspx?startDate=01%2F09%2F2021&numberOfDays=1&ageGroup=Adult");
+    await scrape(
+      "https://www.stevenspass.com/plan-your-trip/lift-access/tickets.aspx?startDate=01%2F09%2F2021&numberOfDays=1&ageGroup=Adult"
+    ); 
+    if (ChoosenDate) {
+      const remaining = getAvailability(null, ChoosenDate);
+      // TODO Notification
+      console.log("sending notification");
+      if (remaining > 0) {
+        new Notification({
+          title: "Notification",
+          body: `stevens resort has ${remaining} ticket(s) available for ${ChoosenDate}.`,
+        }).show();
+      }
+    }
     await sleep(60000);
-    // const remaining = getAvailability('stevens', ChoosenDate);
-    // console.log("sending notification");
-    // if(remaining > 0) {
-    //   new Notification({
-    //     title: 'Basic Notification',
-    //     body: 'AVAILABLE'
-    //   }).show();
-    // } else {
-    //   new Notification({
-    //     title: 'Basic Notification',
-    //     body: 'NOT AVAILABLE'
-    //   }).show();
-    // }
 
     loop();
   }
@@ -110,8 +119,7 @@ function createWindow() {
   loop();
 
   async function scrape(url) {
-
-    console.log('Scraping,.......');
+    console.log("Scraping,.......");
 
     const win = new BrowserWindow({
       width: 800,
@@ -127,7 +135,7 @@ function createWindow() {
     await sleep(5000);
     win.close();
 
-    if(mainWin) {
+    if (mainWin) {
       mainWin.webContents.send("scrape-complete");
     }
   }

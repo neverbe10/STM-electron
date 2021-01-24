@@ -8,17 +8,14 @@ import Select from "@material-ui/core/Select";
 import FormControl from "@material-ui/core/FormControl";
 import MenuItem from "@material-ui/core/MenuItem";
 import InputLabel from "@material-ui/core/InputLabel";
-import OutlinedInput from "@material-ui/core/OutlinedInput";
 import Button from "@material-ui/core/Button";
 import {
   KeyboardDatePicker,
   MuiPickersUtilsProvider,
 } from "@material-ui/pickers";
 const electron = window.require('electron');
-// const fs = electron.remote.require('fs');
 const ipcRenderer  = electron.ipcRenderer;
 
-import PhoneNumberMask from "./PhoneNumberMask";
 import SnowContainer from "./SnowContainer";
 import venmo from './venmo.jpg';
 
@@ -67,11 +64,8 @@ export default function App() {
   );
   const [resort, setResort] = useState("");
   const [resortList, setResortList] = useState([]);
-  const [phoneNumber, setphoneNumber] = useState("(   )    -    ");
   const [isAvailable, setIsAvailable] = useState(false);
   const [resortUrl, setResortUrl] = useState("");
-  const [phoneNumberErrorText, setPhoneNumberErrorText] = useState();
-  const [isLoading, setIsLoading] = useState(false);
   const maxDate = addMonths(new Date(), 3);
 
   useEffect(() => {
@@ -95,38 +89,35 @@ export default function App() {
     if (choosenDate && resort) {
       const res = ipcRenderer.sendSync('availability', resort, choosenDate);
       // TODO: if null!!!
+      if(!res.remaining) {
+
+      }
       setIsAvailable(res.remaining > 0 || false);
       setResortUrl(res.resortUrl || "");
     }
   }, [resort, choosenDate, setIsAvailable]);
 
   const handleDateChange = (date) => {
-    console.log({ date });
-    setChoosenDate(format(date, "MM/dd/yyyy"));
-  };
-
-  const handlePhoneNumberChange = (e) => {
-    setphoneNumber(e.target.value);
-    setPhoneNumberErrorText(undefined);
+    setChoosenDate(date);
   };
 
   // const handleButtonClick = () => {
   //   ipcRenderer.sendSync('scrape', 'stevens');
   // }
 
-  const handleSubscribe = async () => {
-    if (phoneNumber && choosenDate && resort) {
-      if (!isLoading) {
-        setIsLoading(true);
-        // await axios.post(`/subscribe`, {
-        //   phoneNumber,
-        //   choosenDate,
-        //   resort,
-        // });
-        setIsLoading(false);
-      }
-    }
-  };
+  // const handleSubscribe = async () => {
+  //   if (choosenDate && resort) {
+  //     if (!isLoading) {
+  //       setIsLoading(true);
+  //       // await axios.post(`/subscribe`, {
+  //       //   phoneNumber,
+  //       //   choosenDate,
+  //       //   resort,
+  //       // });
+  //       setIsLoading(false);
+  //     }
+  //   }
+  // };
 
   let availability;
 
@@ -134,7 +125,6 @@ export default function App() {
     choosenDate,
     resort,
     isAvailable,
-    isLoading,
     choosenDate,
     resortList,
   });
@@ -220,42 +210,10 @@ export default function App() {
         </Selectors>
         {availability}
         <Subscribe>
-          <h3>SMS Notification</h3>
+          <h3>Notification</h3>
           <p>
-            Subscribe to SMS notification and you will receive an text as soon
-            as an opening is spotted
+            Your will get a Notification when there is a ticket available
           </p>
-          <FormControl
-            fullWidth
-            error={!!phoneNumberErrorText}
-            margin="dense"
-            variant="outlined"
-          >
-            <InputLabel htmlFor="formatted-text-mask-input">
-              phone number
-            </InputLabel>
-            <OutlinedInput
-              autoFocus={true}
-              value={phoneNumber}
-              onChange={handlePhoneNumberChange}
-              id="formatted-text-mask-input"
-              inputComponent={PhoneNumberMask}
-              label="phone number"
-            />
-            {phoneNumberErrorText && (
-              <FormHelperText id="component-error-text">
-                {phoneNumberErrorText}
-              </FormHelperText>
-            )}
-          </FormControl>
-          <Button
-            variant="contained"
-            color={"primary"}
-            disabled={isLoading}
-            onClick={handleSubscribe}
-          >
-            Subscribe
-          </Button>
         </Subscribe>
         <p className="disclaimer">
           <em>This website is not run by or affiliated with Vail Resorts</em>
