@@ -89,7 +89,7 @@ function createWindow() {
   // and load the index.html of the app.
   const startUrl =
     process.env.ELECTRON_START_URL ||
-    `file://${path.join(__dirname, "../build/index.html")}`;
+    `file://${path.join(__dirname, "../dist/index.html")}`;
   mainWin.loadURL(startUrl);
   mainWin.webContents.openDevTools();
 
