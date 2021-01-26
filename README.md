@@ -14,4 +14,4 @@ $ npm run electron
 `$ electron-packager . ski --platfrom=darwin --arch=x64 --electron-version=11.1.1`
 
 ## Download binary for Mac OS
-[Releases](/releases/latest)
+[Releases](https://github.com/neverbe10/STM-electron/releases/tag/v1.0)
