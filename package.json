@@ -6,7 +6,7 @@
   "scripts": {
     "start": "parcel src/index.html",
     "electron": "electron .",
-    "build": "parcel build src/index.html --public-url $(pwd)/dist"
+    "build": "parcel build src/index.html --out-dir build --public-url ./"
   },
   "author": "",
   "license": "ISC",

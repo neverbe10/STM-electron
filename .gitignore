@@ -3,3 +3,4 @@ node_modules/
 ski-darwin-x64/
 dist/
 src/data/
+build/
