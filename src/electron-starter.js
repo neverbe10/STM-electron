@@ -4,6 +4,7 @@ const {
   webContents,
   ipcMain,
   Notification,
+  shell
 } = require("electron");
 const path = require("path");
 const url = require("url");
@@ -56,6 +57,19 @@ function getAvailability(resort, choosenDate) {
   }
 }
 
+ipcMain.on("ready", (event) => {
+  event.returnValue = checkIfDataExist();
+});
+
+function checkIfDataExist() {
+  try {
+    fs.readFileSync(`${scrapedir}/data.json`);
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
 function sleep(ms) {
   return new Promise((ok) => setTimeout(ok, ms));
 }
@@ -63,8 +77,8 @@ function sleep(ms) {
 function createWindow() {
   // Main UI window
   const mainWin = new BrowserWindow({
-    width: 800,
-    height: 600,
+    width: 600,
+    height: 1000,
     webPreferences: {
       // UI window accesses `fs` directly.
       nodeIntegration: true,
@@ -81,12 +95,7 @@ function createWindow() {
       slashes: true,
     });
   mainWin.loadURL(startUrl);
-  mainWin.webContents.openDevTools();
-
-  // When main UI window sends a message to initiate a scrape
-  // ipcMain.on("scrape", (event, arg) => {
-  //   startScraping(arg);
-  // });
+  // mainWin.webContents.openDevTools();
 
   // if(ChoosenDate) {
   //   const notification = {
@@ -96,27 +105,38 @@ function createWindow() {
   //   new Notification(notification).show()
   // }
 
-  async function loop() {
-    await scrape(
-      "https://www.stevenspass.com/plan-your-trip/lift-access/tickets.aspx?startDate=01%2F09%2F2021&numberOfDays=1&ageGroup=Adult"
-    ); 
-    if (ChoosenDate) {
-      const remaining = getAvailability(null, ChoosenDate);
-      // TODO Notification
-      console.log("sending notification");
-      if (remaining > 0) {
-        new Notification({
-          title: "Notification",
-          body: `stevens resort has ${remaining} ticket(s) available for ${ChoosenDate}.`,
-        }).show();
+  async function loop(url = "https://www.stevenspass.com/plan-your-trip/lift-access/tickets.aspx") {
+    try {
+      console.log({url});
+      await scrape(url);
+      if (ChoosenDate) {
+        const remaining = getAvailability(null, ChoosenDate);
+        // TODO Notification
+        console.log("sending notification");
+        if (remaining > 0) {
+          const notification = new Notification({
+            title: "Click to get ticket!",
+            body: `Stevens resort has ${remaining} ticket(s) available for ${ChoosenDate}.`,
+          });
+          notification.on('click', (event, arg)=>{
+            event.preventDefault(); // prevent the browser from focusing the Notification's tab
+            shell.openExternal('https://www.stevenspass.com/plan-your-trip/lift-access/tickets.aspx');
+          });
+          notification.show();
+        }
       }
+      await sleep(60000);
+      loop(url);
+    } catch (e) {
+      console.error(e);
     }
-    await sleep(60000);
-
-    loop();
   }
 
-  loop();
+  // loop();
+
+  ipcMain.on("scrape", (event, arg) => {
+    loop(arg);
+  });
 
   async function scrape(url) {
     console.log("Scraping,.......");

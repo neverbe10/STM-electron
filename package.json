@@ -23,5 +23,8 @@
     "@material-ui/pickers": "^3.2.10",
     "axios": "^0.21.0",
     "date-fns": "^2.16.1"
+  },
+  "devDependencies": {
+    "electron-packager": "^15.2.0"
   }
 }

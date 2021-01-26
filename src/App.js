@@ -13,11 +13,12 @@ import {
   KeyboardDatePicker,
   MuiPickersUtilsProvider,
 } from "@material-ui/pickers";
-const electron = window.require('electron');
-const ipcRenderer  = electron.ipcRenderer;
+const electron = window.require("electron");
+const ipcRenderer = electron.ipcRenderer;
 
 import SnowContainer from "./SnowContainer";
-import venmo from './venmo.jpg';
+import venmo from "./venmo.jpg";
+import LoadingIndicator from "./LoadingIndicator";
 
 const GreenDot = (
   <svg
@@ -66,6 +67,8 @@ export default function App() {
   const [resortList, setResortList] = useState([]);
   const [isAvailable, setIsAvailable] = useState(false);
   const [resortUrl, setResortUrl] = useState("");
+  const [isReady, setIsReady] = useState(false);
+  const [start, setStart] = useState(false);
   const maxDate = addMonths(new Date(), 3);
 
   useEffect(() => {
@@ -80,25 +83,38 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    
-    setResortList(ipcRenderer.sendSync('resort-list'));
-
+    setResortList(ipcRenderer.sendSync("resort-list"));
   }, [setResortList]);
 
   useEffect(() => {
     if (choosenDate && resort) {
-      const res = ipcRenderer.sendSync('availability', resort, choosenDate);
+      const res = ipcRenderer.sendSync("availability", resort, choosenDate);
       // TODO: if null!!!
-      if(!res.remaining) {
-
+      if (!res.remaining) {
       }
       setIsAvailable(res.remaining > 0 || false);
       setResortUrl(res.resortUrl || "");
     }
   }, [resort, choosenDate, setIsAvailable]);
 
+  useEffect(() => {
+    let timeout;
+    if (start) {
+      timeout = setTimeout(() => {
+        const res = ipcRenderer.sendSync("ready");
+        setIsReady(res);
+      }, 3000);
+    }
+    return () => clearTimeout(timeout);
+  }, [start]);
+
   const handleDateChange = (date) => {
     setChoosenDate(date);
+  };
+
+  const handleScraping = () => {
+    ipcRenderer.send("scrape", resortUrl);
+    setStart(true);
   };
 
   // const handleButtonClick = () => {
@@ -129,7 +145,11 @@ export default function App() {
     resortList,
   });
 
-  if (!choosenDate || !resort) {
+  if (!start) {
+    availability = null;
+  } else if (start && !isReady) {
+    availability = <LoadingIndicator />;
+  } else if (!choosenDate || !resort) {
     availability = (
       <Availability>
         <DisabledText>Current Availability: - - - - - - - - - </DisabledText>
@@ -157,7 +177,6 @@ export default function App() {
           Current Availability: <DotWrapper>{GreyDot}</DotWrapper>
           {` `}(no tickets remaining)
         </p>
-        <i>*Sign Up for Notification Below</i>
       </Availability>
     );
   }
@@ -208,12 +227,22 @@ export default function App() {
             </FormControl>
           </Selector>
         </Selectors>
+        {!start && (
+          <Button
+            variant="contained"
+            color={"primary"}
+            onClick={handleScraping}
+            style={{ marginTop: "10px" }}
+          >
+            Start Scrapping
+          </Button>
+        )}
+
         {availability}
+
         <Subscribe>
           <h3>Notification</h3>
-          <p>
-            Your will get a Notification when there is a ticket available
-          </p>
+          <p>Your will get a Notification when there is a ticket available</p>
         </Subscribe>
         <p className="disclaimer">
           <em>This website is not run by or affiliated with Vail Resorts</em>
@@ -222,14 +251,14 @@ export default function App() {
       </PageWrapper>
       <PageWrapper>
         <h1>My Story</h1>
-        <p className={'story'}>
+        <p className={"story"}>
           Skiing is one of my favorite activities of the winter season. I was
           itching to get back outside and enjoy some fresh powder after spending
           nearly a year cooped up at home. I took a day off from work and went
           skiing with my friends at Stevens Pass Resort. It was amazing.
         </p>
 
-        <p className={'story'}>
+        <p className={"story"}>
           Like so many others, I didn’t have plans for Christmas this year. I
           spent the week before Christmas looking for some fun activities. My
           friend invited me to a two day skiing trip with her. She already had
@@ -242,14 +271,14 @@ export default function App() {
           write a small application to notify me when a slot opens up?”
         </p>
 
-        <p className={'story'}>
+        <p className={"story"}>
           I was on vacation (which had piled up due to COVID), so I had plenty
           of free time, and I was eager to go skiing with my friend. With a lot
           of help from Stack Overflow, I wrote a simple app and was able to get
           tickets that same day. I was psyched!
         </p>
 
-        <p className={'story'}>
+        <p className={"story"}>
           After I returned from the skiing trip, I was excited to take this
           little project further. Maybe I could help other people in the same
           position get tickets, too! Taking time off from work to go skiing in
@@ -257,20 +286,22 @@ export default function App() {
           we should all be able to go skiing every weekend.{" "}
         </p>
 
-        <p className={'story'}>
+        <p className={"story"}>
           I’m paying the domain, Twilio (SMS), and server fees out of pocket,
           and I’ve spent a lot of time on this. I am working to add more resorts
-          as fast as I can. Every bit of support I get makes a big difference for me, 
-          so please consider making a small donation, if you can.
+          as fast as I can. Every bit of support I get makes a big difference
+          for me, so please consider making a small donation, if you can.
         </p>
 
-        <Donate/>
+        <Donate />
         <img src={venmo} width={244} />
 
-        <p className={'story'}>
-        See you on the slopes,<br/>10Chen <br/>Jan 8th, 2020
+        <p className={"story"}>
+          See you on the slopes,
+          <br />
+          10Chen <br />
+          Jan 8th, 2020
         </p>
-        
       </PageWrapper>
     </div>
   );
